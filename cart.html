@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Cart</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { 
+      font-family: Arial, sans-serif; 
+      background: #f8f9fa; 
+      padding: 15px; 
+      line-height: 1.6;
+    }
+    header { 
+      display:flex; 
+      justify-content:space-between; 
+      align-items:center; 
+      margin-bottom:25px; 
+      background: linear-gradient(135deg, #0d6efd, #0b5ed7); 
+      color:white; 
+      padding:18px 20px; 
+      border-radius:12px;
+    }
+    h1 { font-size:1.7rem; font-weight:600; }
+
+    .cart-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      margin: 12px 0;
+      background: #f8f9fa;
+      border-radius: 10px;
+      border-left: 4px solid #0d6efd;
+    }
+
+    .price { color: #28a745; font-weight: bold; }
+
+    .remove-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .total {
+      font-size: 1.35rem;
+      font-weight: bold;
+      text-align: right;
+      margin: 25px 0 15px;
+      color: #212529;
+    }
+
+    .payment-box {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .account-number {
+      font-size: 1.6rem;
+      font-weight: bold;
+      letter-spacing: 3px;
+      color: #0d6efd;
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+    }
+
+    input, textarea, #proof-upload {
+      width: 100%;
+      padding: 14px;
+      margin: 12px 0;
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    #preview-proof img {
+      max-width: 100%;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+
+    #confirm-btn {
+      background: #28a745;
+      color: white;
+      font-size: 17px;
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Your Cart</h1>
+  <button onclick="window.location.href='index.html'" 
+          style="background:white;color:#0d6efd;padding:10px 18px;border:none;border-radius:8px;font-weight:600;">
+    Continue Shopping
+  </button>
+</header>
+
+<div class="cart-container">
+  <div id="cart-items"></div>
+
+  <div class="total">
+    Total: #<span id="cart-total">0</span>
+  </div>
+
+  <h3>Delivery Details</h3>
+  <input id="name" placeholder="Your Full Name" required>
+  <input id="phone" type="tel" placeholder="Phone / WhatsApp" maxlength="15" required>
+  <textarea id="address" placeholder="Full Delivery Address" rows="3" required></textarea>
+
+  <!-- Payment Information -->
+  <div class="payment-box">
+    <h3>Make Payment</h3>
+    <p>Transfer the exact amount to:</p>
+    <div class="account-number">0259498941</div>
+    <p><strong>Bank:</strong> GT Bank<br>
+    <strong>Account Name:</strong> Ojo John Olajesu</p>
+  </div>
+
+  <!-- Upload Proof of Payment -->
+  <h3>Upload Proof of Payment (Screenshot)</h3>
+  <input type="file" id="proof-upload" accept="image/*">
+  <div id="preview-proof"></div>
+
+  <button id="confirm-btn">Send Order + Payment Receipt via WhatsApp</button>
+</div>
+
+<script>
+  let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+  function renderCart() {
+    const container = document.getElementById('cart-items');
+    container.innerHTML = '';
+    let total = 0;
+
+    cart.forEach((item, index) => {
+      total += parseFloat(item.price);
+      const div = document.createElement('div');
+      div.className = 'cart-item';
+      div.innerHTML = `
+        <div class="cart-item-info">
+          <strong>${item.name}</strong><br>
+          <span class="price">#${item.price}</span>
+        </div>
+        <button class="remove-btn" onclick="removeFromCart(${index})">Remove</button>
+      `;
+      container.appendChild(div);
+    });
+
+    document.getElementById('cart-total').textContent = total.toFixed(2);
+  }
+
+  window.removeFromCart = function(index) {
+    cart.splice(index, 1);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    renderCart();
+  };
+
+  // Phone restriction
+  const phoneInput = document.getElementById('phone');
+  phoneInput.addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9+\s-]/g, '');
+  });
+
+  // Proof of payment preview
+  const proofInput = document.getElementById('proof-upload');
+  const proofPreview = document.getElementById('preview-proof');
+
+  proofInput.addEventListener('change', () => {
+    const file = proofInput.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        proofPreview.innerHTML = `<img src="${e.target.result}" style="max-width:100%; border-radius:8px;">`;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  document.getElementById('confirm-btn').addEventListener('click', () => {
+    const name = document.getElementById('name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const address = document.getElementById('address').value.trim();
+    const total = document.getElementById('cart-total').textContent;
+
+    if (!name || !phone || !address || cart.length === 0) {
+      alert("Please fill all fields and make sure your cart is not empty.");
+      return;
+    }
+
+    let message = `*PAYMENT RECEIPT & ORDER CONFIRMATION*\n\n`;
+    message += `📅 Date: ${new Date().toLocaleDateString()}\n`;
+    message += `👤 Customer: ${name}\n`;
+    message += `📞 Phone: ${phone}\n`;
+    message += `📍 Address: ${address}\n\n`;
+    message += `──────────────────\n`;
+    message += `*ORDERED ITEMS:*\n`;
+
+    cart.forEach(item => {
+      message += `• ${item.name} - #${item.price}\n`;
+    });
+
+    message += `──────────────────\n`;
+    message += `*TOTAL: #${total}*\n\n`;
+    message += `💰 Payment Details:\n`;
+    message += `Account Number: 0259498941\n`;
+    message += `Bank: GT Bank\n`;
+    message += `Account Name: Ojo John Olajesu\n\n`;
+    message += `✅ I have made the payment. Proof of payment attached below.\n`;
+    message += `Please confirm and process my order.\n`;
+    message += `Thank you!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/2349032428069?text=${encodedMessage}`;   // ← CHANGE TO YOUR WHATSAPP NUMBER
+
+    window.open(whatsappUrl, '_blank');
+
+    // Clear cart
+    cart = [];
+    localStorage.setItem('cart', JSON.stringify(cart));
+  });
+
+  renderCart();
+</script>
+
+</body>
+</html>

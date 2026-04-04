@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+<div class="top-bar">
+  <h3>UfAdmin Panel</h3>
+  <button onclick="window.location.href='index.html'" 
+          style="background:white; color:#0d6efd; padding:8px 16px; border:none; border-radius:6px; font-weight:bold;">
+    ← Back to Shop
+  </button>
+</div>
+
+<div class="container">
+  <h2>Add Product</h2>
+
+  <input type="text" id="name" placeholder="Product Name">
+  <input type="number" id="price" placeholder="Price" step="0.01">
+  <textarea id="desc" placeholder="Description" rows="3"></textarea>
+
+  <input type="file" id="image" accept="image/*">
+  <div id="preview"></div>
+
+  <button id="uploadBtn">Upload Image & Add Product</button>
+
+  <div id="status"></div>
+
+  <h2 style="margin-top:40px;">All Products</h2>
+  <div id="product-list"></div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<script>
+// Your Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyAX8U0KvWZ52Zu8t6WpwvLVHnDrMkHHIYc",
+  authDomain: "uf-collections.firebaseapp.com",
+  projectId: "uf-collections",
+  storageBucket: "uf-collections.firebasestorage.app",
+  messagingSenderId: "377153799455",
+  appId: "1:377153799455:web:58e6aecd4bee08e10fdc2a",
+  measurementId: "G-CLXT1HECGN"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Cloudinary Settings
+const CLOUD_NAME = "dxasunfat";
+const UPLOAD_PRESET = "library_upload";
+
+// Preview Image
+const fileInput = document.getElementById("image");
+const preview = document.getElementById("preview");
+const uploadBtn = document.getElementById("uploadBtn");
+const status = document.getElementById("status");
+
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      preview.innerHTML = `<img src="${e.target.result}">`;
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// Upload Image to Cloudinary + Save to Firebase
+async function addProduct() {
+  const name = document.getElementById("name").value.trim();
+  const price = parseFloat(document.getElementById("price").value);
+  const desc = document.getElementById("desc").value.trim();
+  const file = fileInput.files[0];
+
+  if (!name || isNaN(price) || !file) {
+    status.style.color = "red";
+    status.innerText = "Please fill all fields!";
+    return;
+  }
+
+  const uploadBtn = document.getElementById("uploadBtn");
+  uploadBtn.disabled = true;
+  status.style.color = "blue";
+  status.innerText = "Uploading image...";
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", UPLOAD_PRESET);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await res.json();
+    if (!data.secure_url) throw new Error("Cloudinary upload failed");
+
+    const imageUrl = data.secure_url;
+
+    await db.ref("products").push({
+      name: name,
+      price: price,
+      description: desc,
+      image: imageUrl,
+      createdAt: Date.now()
+    });
+
+    status.style.color = "green";
+    status.innerText = "✅ Product added successfully!";
+
+    // Reset form
+    document.getElementById("name").value = "";
+    document.getElementById("price").value = "";
+    document.getElementById("desc").value = "";
+    fileInput.value = "";
+    preview.innerHTML = "";
+
+  } catch (err) {
+    console.error(err);
+    status.style.color = "red";
+    status.innerText = "❌ Failed: " + err.message;
+  } finally {
+    uploadBtn.disabled = false;
+  }
+}
+
+uploadBtn.addEventListener("click", addProduct);
+
+// Real-time display with Delete button
+const productList = document.getElementById("product-list");
+
+db.ref("products").on("value", (snapshot) => {
+  productList.innerHTML = "";
+  const products = snapshot.val() || {};
+
+  Object.keys(products).forEach(key => {
+    const p = products[key];
+    const div = document.createElement("div");
+    div.className = "product-item";
+    div.innerHTML = `
+      <img src="${p.image}" alt="${p.name}">
+      <div style="flex:1">
+        <h3>${p.name}</h3>
+        <p>#${p.price}</p>
+        <small>${p.description || ''}</small>
+      </div>
+      <button class="delete-btn" onclick="deleteProduct('${key}')">Delete</button>
+    `;
+    productList.appendChild(div);
+  });
+});
+
+window.deleteProduct = function(key) {
+  if (confirm("Delete this product?")) {
+    db.ref("products/" + key).remove();
+  }
+};
+</script>
+
+</body>
+</html>

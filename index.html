@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UF Fashion Lines</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>UF FASHION LINES</h1>
+  <button onclick="window.location.href='cart.html'" style="background:white;color:#0d6efd;padding:8px 15px;border:none;border-radius:6px;">Cart (<span id="cart-count">0</span>)</button>
+</header>
+
+<main id="product-list">Loading products...</main>
+
+<!-- Product Detail Modal -->
+<div id="detail-modal" class="modal">
+  <div class="modal-content">
+    <span id="close-modal" class="close">&times;</span>
+    <img id="modal-image" style="width:100%; border-radius:12px;">
+    <h2 id="modal-name"></h2>
+    <p id="modal-price" style="font-size:1.4rem;color:#28a745;"></p>
+    <p id="modal-desc"></p>
+    <button id="add-to-cart-btn">Add to Cart</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<script>
+// Your Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyAX8U0KvWZ52Zu8t6WpwvLVHnDrMkHHIYc",
+  authDomain: "uf-collections.firebaseapp.com",
+  projectId: "uf-collections",
+  storageBucket: "uf-collections.firebasestorage.app",
+  messagingSenderId: "377153799455",
+  appId: "1:377153799455:web:58e6aecd4bee08e10fdc2a",
+  measurementId: "G-CLXT1HECGN"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+function loadProducts() {
+  const container = document.getElementById('product-list');
+  container.innerHTML = "Loading products...";
+
+  db.ref("products").on("value", (snapshot) => {
+    const products = snapshot.val() || {};
+    renderProducts(Object.values(products));
+  });
+}
+
+function renderProducts(products) {
+  const container = document.getElementById('product-list');
+  container.innerHTML = '';
+
+  products.forEach(product => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <img src="${product.image}" alt="${product.name}">
+      <h3>${product.name}</h3>
+      <p>#${product.price}</p>
+      <button>View Details</button>
+    `;
+    card.querySelector('button').addEventListener('click', () => showDetail(product));
+    container.appendChild(card);
+  });
+}
+
+function showDetail(product) {
+  document.getElementById('modal-image').src = product.image;
+  document.getElementById('modal-name').textContent = product.name;
+  document.getElementById('modal-price').textContent = `#${product.price}`;
+  document.getElementById('modal-desc').textContent = product.description || '';
+
+  const modal = document.getElementById('detail-modal');
+  modal.style.display = 'flex';
+
+  document.getElementById('add-to-cart-btn').onclick = () => {
+    cart.push(product);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartCount();
+    alert(`${product.name} added to cart!`);
+    modal.style.display = 'none';
+  };
+}
+
+function updateCartCount() {
+  document.getElementById('cart-count').textContent = cart.length;
+}
+
+document.getElementById('close-modal').addEventListener('click', () => {
+  document.getElementById('detail-modal').style.display = 'none';
+});
+
+// Load products when page opens
+loadProducts();
+updateCartCount();
+</script>
+
+</body>
+</html>
